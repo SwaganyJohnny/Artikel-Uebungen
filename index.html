@@ -1,22 +1,163 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artikel Program</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Német Névelő Gyakorló</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f7f7f7; }
+    h1 { color: #333; }
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    input, select { padding: 5px; font-size: 16px; margin: 5px; }
+    .kerdes { font-size: 24px; margin: 20px 0; }
+    .statisztika { margin-top: 10px; font-size: 16px; }
+    .doboz { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    .szoLista { margin-top: 20px; text-align: left; }
+    .szoLista ul { padding: 0; list-style-type: none; }
+    .szoLista li { margin: 5px 0; }
+  </style>
 </head>
 <body>
-    <div id="app">
-        <h1>Üdvözöllek az Artikel Programban!</h1>
-        <p>Írj be egy szót és válaszd ki a megfelelő névelőt!</p>
-        <input type="text" id="wordInput" placeholder="Írj egy szót">
-        <button onclick="saveWord()">Mentés</button>
-        <p id="status"></p>
-        <h2>Mentett Szavak</h2>
-        <ul id="savedWords"></ul>
-    </div>
+  <h1>Német Névelő Gyakorló</h1>
 
-    <script src="app.js"></script>
+  <!-- Kérdés és válasz gombok -->
+  <div class="doboz">
+    <div id="kerdes" class="kerdes">Nyomd meg az "Új kérdés" gombot!</div>
+    <button onclick="valasz('der')">der</button>
+    <button onclick="valasz('die')">die</button>
+    <button onclick="valasz('das')">das</button>
+    <br>
+    <button onclick="ujKerdes()">Új kérdés</button>
+    <div class="statisztika" id="statisztika">Válaszok: 0 | Helyes: 0 | Pontosság: 0%</div>
+  </div>
+
+  <!-- Új szó hozzáadása -->
+  <div class="doboz">
+    <h3>Új főnév hozzáadása</h3>
+    <input type="text" id="ujSzo" placeholder="Írj be egy szót, pl. 'der Tisch'">
+    <button onclick="hozzaad()">Hozzáadás</button>
+  </div>
+
+  <!-- Elmentett szavak listája -->
+  <div class="doboz szoLista">
+    <h3>Elmentett szavak</h3>
+    <ul id="szoLista">
+      <!-- Itt jelennek meg a szavak -->
+    </ul>
+  </div>
+
+  <script>
+    // Próbáljuk meg betölteni a szavakat a LocalStorage-ból
+    let szavak = JSON.parse(localStorage.getItem('szavak')) || [
+      { szo: "Tisch", nevelo: "der" },
+      { szo: "Blume", nevelo: "die" },
+      { szo: "Buch", nevelo: "das" }
+    ];
+
+    let jelenlegi = null;
+    let ossz = 0;
+    let helyes = 0;
+
+    function frissitStatisztika() {
+      const arany = ossz === 0 ? 0 : (helyes / ossz * 100).toFixed(1);
+      document.getElementById("statisztika").textContent =
+        `Válaszok: ${ossz} | Helyes: ${helyes} | Pontosság: ${arany}%`;
+    }
+
+    function ujKerdes() {
+      if (szavak.length === 0) {
+        alert("Nincs szó a listában!");
+        return;
+      }
+      jelenlegi = szavak[Math.floor(Math.random() * szavak.length)];
+      document.getElementById("kerdes").textContent = `Mi a helyes névelő?\n${jelenlegi.szo}`;
+    }
+
+    function valasz(valasztott) {
+      if (!jelenlegi) return;
+      ossz++;
+      if (valasztott === jelenlegi.nevelo) {
+        alert("Helyes!");
+        helyes++;
+      } else {
+        alert(`Nem jó! A helyes válasz: ${jelenlegi.nevelo}`);
+      }
+      frissitStatisztika();
+      ujKerdes();
+    }
+
+    function hozzaad() {
+      const szo = document.getElementById("ujSzo").value.trim();
+
+      if (szo === "") {
+        alert("Írj be egy szót a névelővel együtt!");
+        return;
+      }
+
+      // Névelő és főnév kinyerése
+      const match = szo.match(/(der|die|das)\s(.+)/);
+      if (match) {
+        const nevelo = match[1];
+        const foSzo = match[2];
+
+        szavak.push({ szo: foSzo, nevelo: nevelo });
+        document.getElementById("ujSzo").value = "";
+        alert(`A(z) ${foSzo} (${nevelo}) hozzáadva a listához.`);
+        frissitSzoLista();
+        localStorage.setItem('szavak', JSON.stringify(szavak)); // Elmentjük a LocalStorage-ba
+      } else {
+        alert("Hibás formátum! Példa: 'der Tisch', 'die Blume' stb.");
+      }
+    }
+
+    function frissitSzoLista() {
+      const lista = document.getElementById("szoLista");
+      lista.innerHTML = ""; // Ürítse ki a listát
+
+      szavak.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.nevelo} ${item.szo}`;
+
+        const modositasBtn = document.createElement("button");
+        modositasBtn.textContent = "Módosít";
+        modositasBtn.onclick = () => modositas(index);
+
+        const torlesBtn = document.createElement("button");
+        torlesBtn.textContent = "Törlés";
+        torlesBtn.onclick = () => torles(index);
+
+        li.appendChild(modositasBtn);
+        li.appendChild(torlesBtn);
+
+        lista.appendChild(li);
+      });
+    }
+
+    function modositas(index) {
+      const szo = prompt("Módosítsd a főnevet:", szavak[index].szo);
+      if (szo) {
+        const nevelo = prompt("Módosítsd a névelőt (der, die, das):", szavak[index].nevelo);
+        if (nevelo && ["der", "die", "das"].includes(nevelo)) {
+          szavak[index].szo = szo;
+          szavak[index].nevelo = nevelo;
+          frissitSzoLista();
+          localStorage.setItem('szavak', JSON.stringify(szavak)); // Elmentjük a LocalStorage-ba
+        } else {
+          alert("Érvénytelen névelő!");
+        }
+      }
+    }
+
+    function torles(index) {
+      if (confirm(`Biztos törölni szeretnéd a(z) ${szavak[index].szo} szót?`)) {
+        szavak.splice(index, 1);
+        frissitSzoLista();
+        localStorage.setItem('szavak', JSON.stringify(szavak)); // Elmentjük a LocalStorage-ba
+      }
+    }
+
+    // Oldal betöltésekor frissítjük a listát
+    frissitSzoLista();
+  </script>
 </body>
 </html>
